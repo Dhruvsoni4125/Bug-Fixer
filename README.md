@@ -1,11 +1,10 @@
 # 🐞 BugRescue
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Multi-Cloud](https://img.shields.io/badge/AI-OpenAI%20%7C%20Claude%20%7C%20Gemini-purple)](https://openai.com/)
 [![Docker](https://img.shields.io/badge/Docker-Supported-blue)](https://www.docker.com/)
 
-**BugRescue** is an autonomous AI-powered code repair assistant designed to scan project codebases, detect bugs, and automatically execute a self-correcting fix-loop. 
+**BugFixere** is an autonomous AI-powered code repair assistant designed to scan project codebases, detect bugs, and automatically execute a self-correcting fix-loop. 
 
 Featuring a **Hybrid Brain**, it lets you switch seamlessly between **local Ollama models** (perfect for privacy-centric offline development) and **cloud LLMs** (GPT-4o, Claude 3.5 Sonnet, Gemini Pro) for advanced reasoning.
 
