@@ -1,0 +1,58 @@
+# ========================
+# BugRescue — Docker Compose
+# One-command launch with optional Ollama sidecar
+# ========================
+# Usage:
+#   docker compose up              → Streamlit UI only (use cloud AI)
+#   docker compose --profile local up  → Streamlit UI + local Ollama
+#
+# Environment variables:
+#   Copy .env.example to .env and fill in your API keys
+
+services:
+  # --- BugRescue Web Dashboard ---
+  bugrescue:
+    build: .
+    container_name: bugrescue-app
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mount your project code for scanning
+      - ./projects:/app/projects
+      # Persist backups and fixed files
+      - ./output/backups:/app/.bugrescue_backups
+      - ./output/fixed:/app/fixed_code
+    env_file:
+      - .env
+    environment:
+      # Override Ollama URL to point to the sidecar container
+      - OLLAMA_URL=http://ollama:11434/api/generate
+    depends_on:
+      ollama:
+        condition: service_started
+        required: false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # --- Ollama (Local AI) — opt-in via profile ---
+  ollama:
+    image: ollama/ollama:latest
+    container_name: bugrescue-ollama
+    profiles:
+      - local
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # Pull the default model on first start
+    # Run manually: docker exec bugrescue-ollama ollama pull qwen2.5-coder:14b
+
+volumes:
+  ollama_data:
+    driver: local

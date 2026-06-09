@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+
+# BugRescue runtime artifacts
+.bugrescue_backups/
+fixed_code/
+bugrescue_report.html
+
+# Environment & secrets
+.env
+.env.*
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Docs (not needed in image)
+LICENSE
+*.md

@@ -7,6 +7,16 @@ import subprocess, sys, os, re, requests, argparse, shutil, html, time
 from datetime import datetime
 from pathlib import Path
 
+# --- CONSOLE ENCODING FOR WINDOWS ---
+if sys.platform.startswith('win'):
+    try:
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 # --- AUTO-INSTALL DEPENDENCIES ---
 def install_deps():
     try:
@@ -49,7 +59,7 @@ class AIProvider:
             self.model = self.model or "claude-3-5-sonnet-20240620"
         elif self.provider == "gemini":
             self.model = self.model or "gemini-1.5-pro"
-            self.url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.key}"
+            self.url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
 
     def query(self, prompt, retries=3):
         for attempt in range(retries):
@@ -68,6 +78,7 @@ class AIProvider:
                         "temperature": 0.2
                     }
                     res = requests.post(self.url, headers=headers, json=payload, timeout=60)
+                    res.raise_for_status()
                     return res.json()['choices'][0]['message']['content']
 
                 elif self.provider == "anthropic":
@@ -79,13 +90,22 @@ class AIProvider:
                         "messages": [{"role": "user", "content": prompt}]
                     }
                     res = requests.post(self.url, headers=headers, json=payload, timeout=60)
+                    res.raise_for_status()
                     return res.json()['content'][0]['text']
 
                 elif self.provider == "gemini":
                     if not self.key: return "ERROR: Missing Gemini API Key."
+                    url = f"{self.url}?key={self.key}"
                     payload = {"contents": [{"parts": [{"text": prompt}]}]}
-                    res = requests.post(self.url, json=payload, timeout=60)
-                    return res.json()['candidates'][0]['content']['parts'][0]['text']
+                    headers = {"Content-Type": "application/json"}
+                    res = requests.post(url, headers=headers, json=payload, timeout=60)
+                    res.raise_for_status()
+                    res_json = res.json()
+                    if 'candidates' in res_json and len(res_json['candidates']) > 0:
+                        cand = res_json['candidates'][0]
+                        if 'content' in cand and 'parts' in cand['content'] and len(cand['content']['parts']) > 0:
+                            return cand['content']['parts'][0]['text']
+                    return f"API ERROR: Unexpected Gemini response structure: {res_json}"
 
             except Exception as e:
                 if attempt < retries - 1:
@@ -96,12 +116,12 @@ class AIProvider:
 
 # --- CORE UTILS ---
 def print_banner(provider, model):
-    banner = f"""
+    banner = rf"""
     {Fore.CYAN}
       ____              ____                           
      |  _ \            |  _ \                          
      | |_) |_   _  __ _| |_) |___  ___  ___ _   _  ___ 
-     |  _ <| | | |/ _` |  _ <| _ \/ __|/ __| | | |/ _ \\
+     |  _ <| | | |/ _` |  _ <| _ \/ __|/ __| | | |/ _ \
      | |_) | |_| | (_| | |_) |  __/\__ \ (__| |_| |  __/
      |____/ \__,_|\__, |____/ \___||___/\___|\__,_|\___|
                    __/ |                                
@@ -113,7 +133,7 @@ def print_banner(provider, model):
 def generate_report(stats, logs, fixed_dir_abs):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     css = "body{font-family:'Segoe UI',sans-serif;background:#1e1e1e;color:#d4d4d4;padding:20px;max-width:1000px;margin:0 auto} h1{color:#4ec9b0;border-bottom:1px solid #3c3c3c} .card{background:#252526;border:1px solid #3c3c3c;padding:15px;margin-bottom:20px;border-radius:6px} table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid #3c3c3c;text-align:left} .success{color:#6a9955} .fail{color:#f44747} .warn{color:#cca700} .info{color:#569cd6}"
-    rows = "".join([f"<tr><td>{e['file']}</td><td class='{'success' if e['status']=='FIXED' else 'fail' if 'FAILED' in e['status'] else 'warn'}'><strong>{e['status']}</strong></td><td>{html.escape(e['error'])[:120]}</td></tr>" for e in logs])
+    rows = "".join([f"<tr><td>{e['file']}</td><td class='{'success' if e['status'] in ('FIXED', 'CLEAN') else 'fail' if 'FAILED' in e['status'] else 'warn'}'><strong>{e['status']}</strong></td><td>{html.escape(e['error'])[:120]}</td></tr>" for e in logs])
     
     html_c = f"""
     <html><head><title>BugRescue Report</title><style>{css}</style></head><body>
@@ -220,13 +240,17 @@ def main():
     files = []
     ignore_dirs = {BACKUP_DIR.name, FIXED_DIR.name, ".git", "__pycache__", "node_modules"}
     
-    for r, dirs, fs in os.walk(root_path):
-        # Modify dirs in-place to skip ignored directories
-        dirs[:] = [d for d in dirs if d not in ignore_dirs]
-        
-        for f in fs:
-            if f.lower().endswith(('.py','.js','.go','.rs','.cpp','.java','.yaml','.dockerfile','.html')):
-                files.append(Path(r) / f)
+    if root_path.is_file():
+        if root_path.suffix.lower() in ('.py','.js','.go','.rs','.cpp','.java','.yaml','.dockerfile','.html'):
+            files.append(root_path)
+    else:
+        for r, dirs, fs in os.walk(root_path):
+            # Modify dirs in-place to skip ignored directories
+            dirs[:] = [d for d in dirs if d not in ignore_dirs]
+            
+            for f in fs:
+                if f.lower().endswith(('.py','.js','.go','.rs','.cpp','.java','.yaml','.dockerfile','.html')):
+                    files.append(Path(r) / f)
     
     if not files:
         print(f"{Fore.RED}❌ No scannable files found.{Style.RESET_ALL}")
