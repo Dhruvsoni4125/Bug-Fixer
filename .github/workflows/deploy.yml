@@ -20,5 +20,22 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # Push to Hugging Face Space repository.
+          # 1. Create a clean temporary directory for deployment
+          mkdir deploy_dir
+          
+          # 2. Copy only the necessary runtime files (excluding large assets and git history)
+          cp -r app.py bug_rescue.py Dockerfile requirements.txt .streamlit deploy_dir/
+          
+          # 3. Initialize a fresh Git repository in the deployment directory
+          cd deploy_dir
+          git init -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 4. Stage and commit files
+          git add .
+          git commit -m "Deploy BugRescue to Hugging Face Spaces"
+          
+          # 5. Force push the clean single commit to Hugging Face
           git push --force https://DhruvSoni:$HF_TOKEN@huggingface.co/spaces/DhruvSoni/Bug-Fixer main
+
