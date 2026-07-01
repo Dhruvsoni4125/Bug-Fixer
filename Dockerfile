@@ -52,14 +52,14 @@ RUN mkdir -p /app/.bugrescue_backups /app/fixed_code /app/projects && \
 USER bugrescue
 
 # Expose Streamlit port
-EXPOSE 8501
+EXPOSE 7860
 
 # Health check — Streamlit serves a /healthz endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+    CMD curl -f http://localhost:7860/_stcore/health || exit 1
 
 # Environment variables (can be overridden at runtime)
-ENV STREAMLIT_SERVER_PORT=8501
+ENV STREAMLIT_SERVER_PORT=7860
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
@@ -71,7 +71,7 @@ ENV STREAMLIT_THEME_TEXT_COLOR="#d4d4d4"
 # Default entrypoint: Streamlit dashboard
 # Override with: docker run ... python3 bug_rescue.py ./code
 ENTRYPOINT ["streamlit", "run", "app.py", \
-    "--server.port=8501", \
+    "--server.port=7860", \
     "--server.address=0.0.0.0", \
     "--server.headless=true", \
     "--browser.gatherUsageStats=false"]
