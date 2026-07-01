@@ -26,6 +26,18 @@ jobs:
           # 2. Copy only the necessary runtime files (excluding large assets and git history)
           cp -r app.py bug_rescue.py Dockerfile requirements.txt .streamlit deploy_dir/
           
+          # 2.5. Generate README.md with Hugging Face Space metadata
+          echo '---' > deploy_dir/README.md
+          echo 'title: Bug-Fixer' >> deploy_dir/README.md
+          echo 'emoji: 🐞' >> deploy_dir/README.md
+          echo 'colorFrom: green' >> deploy_dir/README.md
+          echo 'colorTo: indigo' >> deploy_dir/README.md
+          echo 'sdk: docker' >> deploy_dir/README.md
+          echo 'pinned: false' >> deploy_dir/README.md
+          echo '---' >> deploy_dir/README.md
+          echo '# Bug-Fixer' >> deploy_dir/README.md
+          echo 'Autonomous AI-powered code repair assistant.' >> deploy_dir/README.md
+          
           # 3. Initialize a fresh Git repository in the deployment directory
           cd deploy_dir
           git init -b main
